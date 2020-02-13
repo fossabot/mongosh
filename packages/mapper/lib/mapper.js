@@ -1,3 +1,5 @@
+const EventEmitter = require('events');
+
 const {
   AggregationCursor,
   BulkWriteResult,
@@ -10,7 +12,7 @@ const {
 } = require('mongosh-shell-api');
 
 class Mapper {
-  constructor(serviceProvider) {
+  constructor(serviceProvider, messageBus) {
     this._serviceProvider = serviceProvider;
     /* Internal state gets stored in mapper, state that is visible to the user
      * is stored in ctx */
@@ -18,6 +20,8 @@ class Mapper {
     this.awaitLoc = []; // track locations where await is needed
     this.checkAwait = false;
     this.cursorAssigned = false;
+    // default to an empty event emitter
+    this.messageBus = messageBus || new EventEmitter();
     /* This will be rewritten so it's less fragile */
     const parseStack = (s) => {
       const r = s.match(/repl:1:(\d*)/);
@@ -125,6 +129,8 @@ class Mapper {
       );
     }
 
+    this.messageBus.emit('aggregate:start', cmd)
+
     const cursor = new AggregationCursor(this, cmd);
 
     if ('explain' in options) {
@@ -149,6 +155,7 @@ class Mapper {
    */
   async bulkWrite(collection, operations, options = {}) {
     const dbOptions = {};
+    this.messageBus.emit('bulkWrite');
     if ('writeConcern' in options) {
       dbOptions.writeConcern = options.writeConcern;
     }
@@ -180,6 +187,7 @@ class Mapper {
    */
   count(collection, query= {}, options = {}) {
     const dbOpts = {};
+    this.messageBus.emit('count');
     if ('readConcern' in options) {
       dbOpts.readConcern = options.readConcern;
     }
@@ -203,6 +211,7 @@ class Mapper {
    * @returns {Integer} The promise of the count.
    */
   countDocuments(collection, query, options = {}) {
+    this.messageBus.emit('countDocuments');
     return this._serviceProvider.countDocuments(
       collection._database,
       collection._collection,
@@ -226,6 +235,7 @@ class Mapper {
    */
   async deleteMany(collection, filter, options = {}) {
     const dbOptions = {};
+    this.messageBus.emit('deleteMany');
     if ('writeConcern' in options) {
       dbOptions.writeConcern = options.writeConcern;
     }
@@ -259,6 +269,7 @@ class Mapper {
   async deleteOne(collection, filter, options = {}) {
     if (this.checkAwait) return;
     const dbOptions = {};
+    this.messageBus.emit('deleteOne');
     if ('writeConcern' in options) {
       dbOptions.writeConcern = options.writeConcern;
     }
@@ -289,6 +300,7 @@ class Mapper {
    * @returns {Array} The promise of the result. TODO: make sure returned type is the same
    */
   distinct(collection, field, query, options = {}) {
+    this.messageBus.emit('distinct');
     return this._serviceProvider.distinct(
       collection._database,
       collection._collection,
@@ -308,6 +320,7 @@ class Mapper {
    * @returns {Integer} The promise of the count.
    */
   estimatedDocumentCount(collection, options = {}) {
+    this.messageBus.emit('estimatedDocumentCount');
     return this._serviceProvider.estimatedDocumentCount(
       collection._database,
       collection._collection,
@@ -329,6 +342,7 @@ class Mapper {
    */
   find(collection, query, projection) {
     const options = {};
+    this.messageBus.emit('find');
     if (projection) {
       options.projection = projection;
     }
@@ -356,6 +370,7 @@ class Mapper {
    */
   findOne(collection, query, projection) {
     const options = {};
+    this.messageBus.emit('findOne');
     if (projection) {
       options.projection = projection;
     }
@@ -389,6 +404,8 @@ class Mapper {
    * @returns {Document} The promise of the result.
    */
   async findOneAndDelete(collection, filter, options = {}) {
+    this.messageBus.emit('findOneAndDelete');
+
     const result = await this._serviceProvider.findOneAndDelete(
       collection._database,
       collection._collection,
@@ -415,6 +432,9 @@ class Mapper {
    */
   async findOneAndReplace(collection, filter, replacement, options = {}) {
     const findOneAndReplaceOptions = { ...options };
+
+    this.messageBus.emit('findOneAndReplace');
+
     if ('returnNewDocument' in findOneAndReplaceOptions) {
       findOneAndReplaceOptions.returnDocument = findOneAndReplaceOptions.returnNewDocument;
       delete findOneAndReplaceOptions.returnNewDocument;
@@ -445,6 +465,9 @@ class Mapper {
    */
   async findOneAndUpdate(collection, filter, update, options = {}) {
     const findOneAndUpdateOptions = { ...options };
+
+    this.messageBus.emit('findOneAndUpdate');
+
     if ('returnNewDocument' in findOneAndUpdateOptions) {
       findOneAndUpdateOptions.returnDocument = findOneAndUpdateOptions.returnNewDocument;
       delete findOneAndUpdateOptions.returnNewDocument;
@@ -474,6 +497,9 @@ class Mapper {
   async insert(collection, docs, options = {}) {
     const d = Object.prototype.toString.call(docs) === '[object Array]' ? docs : [docs];
     const dbOptions = {};
+
+    this.messageBus.emit('insert');
+
     if ('writeConcern' in options) {
       dbOptions.writeConcern = options.writeConcern;
     }
@@ -506,6 +532,9 @@ class Mapper {
    */
   async insertMany(collection, docs, options = {}) {
     const dbOptions = {};
+
+    this.messageBus.emit('insertMany');
+
     if ('writeConcern' in options) {
       dbOptions.writeConcern = options.writeConcern;
     }
@@ -540,6 +569,9 @@ class Mapper {
   async insertOne(collection, doc, options = {}) {
     if (this.checkAwait) return;
     const dbOptions = {};
+
+    this.messageBus.emit('insertOne');
+
     if ('writeConcern' in options) {
       dbOptions.writeConcern = options.writeConcern;
     }
@@ -563,6 +595,7 @@ class Mapper {
    * @return {Boolean}
    */
   isCapped(collection) {
+    this.messageBus.emit('isCapped');
     return this._serviceProvider.isCapped(
       collection._database,
       collection._collection,
@@ -584,6 +617,7 @@ class Mapper {
    */
   remove(collection, query, options = {}) {
     const dbOptions = {};
+    this.messageBus.emit('remove');
     if ('writeConcern' in options) {
       dbOptions.writeConcern = options.writeConcern;
     }
@@ -608,6 +642,7 @@ class Mapper {
     if ('writeConcern' in options) {
       dbOptions.writeConcern = options.writeConcern;
     }
+    this.messageBus.emit('save');
     return this._serviceProvider.save(
       collection._database,
       collection._collection,
@@ -638,6 +673,7 @@ class Mapper {
     if ('writeConcern' in options) {
       dbOptions.writeConcern = options.writeConcern;
     }
+    this.messageBus.emit('replaceOne');
     const result = await this._serviceProvider.replaceOne(
       collection._collection,
       collection._database,
@@ -664,11 +700,13 @@ class Mapper {
    * @returns {Promise} The promise of command results. TODO: command result object
    */
   runCommand(database, cmd) {
+    this.messageBus.emit('runCommand');
     return this._serviceProvider.runCommand(database._database, cmd);
   };
 
   async update(collection, filter, update, options = {}) {
     let result;
+    this.messageBus.emit('update');
     if (options.multi) {
       result = await this._serviceProvider.updateMany(
         collection._collection,
@@ -714,6 +752,7 @@ class Mapper {
     if ('writeConcern' in options) {
       dbOptions.writeConcern = options.writeConcern;
     }
+    this.messageBus.emit('updateMany')
     const result = await this._serviceProvider.updateMany(
       collection._collection,
       collection._database,
@@ -750,21 +789,23 @@ class Mapper {
     if ('writeConcern' in options) {
       dbOptions.writeConcern = options.writeConcern;
     }
-   const result = await this._serviceProvider.updateMany(
-      collection._collection,
-      collection._database,
-      filter,
-      update,
-      options,
-      dbOptions
-    );
-    return new UpdateResult(
-        result.result.ok,
-        result.matchedCount,
-        result.modifiedCount,
-        result.upsertedCount,
-        result.upsertedId
-    )
+
+    this.messageBus.emit('updateOne')
+    const result = await this._serviceProvider.updateMany(
+       collection._collection,
+       collection._database,
+       filter,
+       update,
+       options,
+       dbOptions
+     );
+     return new UpdateResult(
+         result.result.ok,
+         result.matchedCount,
+         result.modifiedCount,
+         result.upsertedCount,
+         result.upsertedId
+     )
   };
 }
 

@@ -68,6 +68,7 @@
     "mongosh-service-provider-core": "file:packages/service-provider-core",
     "mongosh-service-provider-server": "file:packages/service-provider-server",
     "mongosh-shell-api": "file:packages/shell-api",
+    "mongosh-log-emitter": "file:packages/log-emitter",
     "mongosh-transport-core": "file:packages/transport-core",
     "mongosh-transport-browser": "file:packages/transport-browser",
     "mongosh-transport-server": "file:packages/transport-server"

@@ -10,6 +10,8 @@ import Mapper from 'mongosh-mapper';
 import completer from './completer';
 import { Transform } from 'stream';
 import i18n from 'mongosh-i18n';
+import nanobus from 'nanobus';
+import logger from './logger';
 import write from './writer';
 import path from 'path';
 import util from 'util';
@@ -42,9 +44,12 @@ class CliRepl {
    */
   connect(driverUri: string, driverOptions: NodeOptions): void {
     console.log(i18n.__(CONNECTING), driverUri);
+    // @ts-ignore
+    const bus = nanobus('monogsh');
+    const log = logger(bus)
     CliServiceProvider.connect(driverUri, driverOptions).then((serviceProvider) => {
       this.serviceProvider = serviceProvider;
-      this.mapper = new Mapper(this.serviceProvider);
+      this.mapper = new Mapper(this.serviceProvider, bus);
       this.shellApi = new ShellApi(this.mapper);
       // TODO: @lrlna once shell-api has db.version() implemented, use server
       // version coming from shell-api instead
