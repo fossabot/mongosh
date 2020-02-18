@@ -25,3 +25,4 @@ class:
 
     use: *__defaultMethod
     it: *__defaultMethod
+    show: *__defaultMethod
