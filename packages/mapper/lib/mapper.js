@@ -52,11 +52,15 @@ class Mapper {
   setCtx(ctx) {
     this._ctx = ctx;
     this._ctx.db = new Database(this, 'test');
+
+    this.messageBus.emit('setCtx', this._ctx.db)
   };
 
 
   use(_, db) {
     this._ctx.db = new Database(this, db);
+    this.messageBus.emit('use', `switched to db ${db}`)
+
     return `switched to db ${db}`;
   };
 
@@ -71,9 +75,12 @@ class Mapper {
           break;
         }
       }
+
+      this.messageBus.emit('it', results.length)
       if (results.length > 0)
         return results;
     }
+    this.messageBus.emit('it', 'no cursor')
     return 'no cursor';
   }
 
@@ -129,7 +136,7 @@ class Mapper {
       );
     }
 
-    this.messageBus.emit('aggregate:start', cmd)
+    this.messageBus.emit('aggregate', cmd)
 
     const cursor = new AggregationCursor(this, cmd);
 
@@ -154,8 +161,8 @@ class Mapper {
    * @returns {BulkWriteResult} The promise of the result.
    */
   async bulkWrite(collection, operations, options = {}) {
+    this.messageBus.emit('bulkWrite:start', collection);
     const dbOptions = {};
-    this.messageBus.emit('bulkWrite');
     if ('writeConcern' in options) {
       dbOptions.writeConcern = options.writeConcern;
     }
@@ -167,6 +174,8 @@ class Mapper {
       options,
       dbOptions
     );
+
+    this.messageBus.emit('bulkWrite:result', result);
 
     return new BulkWriteResult(
         result.result.ok // TODO
@@ -187,7 +196,8 @@ class Mapper {
    */
   count(collection, query= {}, options = {}) {
     const dbOpts = {};
-    this.messageBus.emit('count');
+    this.messageBus.emit('count', collection, query);
+
     if ('readConcern' in options) {
       dbOpts.readConcern = options.readConcern;
     }
@@ -211,7 +221,7 @@ class Mapper {
    * @returns {Integer} The promise of the count.
    */
   countDocuments(collection, query, options = {}) {
-    this.messageBus.emit('countDocuments');
+    this.messageBus.emit('countDocuments', collection, query);
     return this._serviceProvider.countDocuments(
       collection._database,
       collection._collection,
