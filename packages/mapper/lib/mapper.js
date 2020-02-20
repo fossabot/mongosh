@@ -52,8 +52,6 @@ class Mapper {
   setCtx(ctx) {
     this._ctx = ctx;
     this._ctx.db = new Database(this, 'test');
-
-    this.messageBus.emit('setCtx', this._ctx.db)
   };
 
 
@@ -352,7 +350,7 @@ class Mapper {
    */
   find(collection, query, projection) {
     const options = {};
-    this.messageBus.emit('find');
+    this.messageBus.emit('find', collection, query);
     if (projection) {
       options.projection = projection;
     }
@@ -380,7 +378,7 @@ class Mapper {
    */
   findOne(collection, query, projection) {
     const options = {};
-    this.messageBus.emit('findOne');
+    this.messageBus.emit('findOne', collection._collection, query);
     if (projection) {
       options.projection = projection;
     }

@@ -28,6 +28,7 @@
     "mongosh-service-provider-server": "file:../service-provider-server",
     "mongosh-shell-api": "file:../shell-api",
     "nanobus": "^4.4.0",
+    "pino": "^5.16.0",
     "read": "^1.0.7",
     "semver": "^7.1.2"
   },

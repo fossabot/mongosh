@@ -34,6 +34,7 @@ class CliRepl {
   private shellApi: ShellApi;
   private mdbVersion: any;
   private repl: REPLServer;
+  private bus: nanobus;
   private options: CliOptions;
 
   /**
@@ -45,11 +46,11 @@ class CliRepl {
   connect(driverUri: string, driverOptions: NodeOptions): void {
     console.log(i18n.__(CONNECTING), driverUri);
     // @ts-ignore
-    const bus = nanobus('monogsh');
-    const log = logger(bus)
+    this.bus = nanobus('monogsh');
+    const log = logger(this.bus)
     CliServiceProvider.connect(driverUri, driverOptions).then((serviceProvider) => {
       this.serviceProvider = serviceProvider;
-      this.mapper = new Mapper(this.serviceProvider, bus);
+      this.mapper = new Mapper(this.serviceProvider, this.bus);
       this.shellApi = new ShellApi(this.mapper);
       // TODO: @lrlna once shell-api has db.version() implemented, use server
       // version coming from shell-api instead
@@ -181,6 +182,7 @@ class CliRepl {
         }
         callback(null, str);
       } catch (err) {
+        this.bus.emit('eval:error', err)
         callback(err, null);
       } finally {
         this.mapper.cursorAssigned = false;
