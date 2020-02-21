@@ -7,10 +7,20 @@ import util from 'util';
  *
  * @returns {string} The output.
  */
-function write(output: any): string {
+function write(bus: any, output: any): string {
   if (output && output.toReplString) {
     return output.toReplString();
   }
+
+  if (output && output.message && typeof output.stack === 'string') {
+    bus.emit('error', output.message);
+
+    return util.inspect(output, {
+      showProxy: false,
+      colors: true,
+    });
+  }
+
   if (typeof output === 'string') {
     return output;
   }
